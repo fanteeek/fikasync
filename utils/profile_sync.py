@@ -13,6 +13,15 @@ class ProfileSync:
         self.github_client = github_client
         self.file_manager = file_manager
     
+    def get_profiles_snapshot(self) -> Dict[str, str]:
+        snapshot = {}
+        if self.config.GAME_PROFILES_PATH.exists():
+            for profile in self.config.GAME_PROFILES_PATH.glob('*.json'):
+                file_hash = self._calculate_file_hash(profile)
+                if file_hash:
+                    snapshot[profile.name] = file_hash
+        return snapshot
+    
     def _calculate_file_hash(self, file_path: Path) -> Optional[str]:
         if not file_path.exists():
             return None
@@ -119,7 +128,7 @@ class ProfileSync:
         
         return updated_count, error_count
     
-    def sync_changes_after_game(self, owner: str, repo: str) -> bool:
+    def sync_changes_after_game(self, owner: str, repo: str, initial_snapshot: Dict[str, str]) -> bool:
         logger.log('SYNC', 'Проверяю локальные изменения для отправки...')
         
         try:
@@ -137,6 +146,14 @@ class ProfileSync:
                 file_name = profile.name
                 remote_path = f'profiles/{file_name}'
                 
+                current_hash = self._calculate_file_hash(profile)
+                
+                if file_name in initial_snapshot:
+                    if initial_snapshot[file_name] == current_hash:
+                        logger.log('DEBUG', f'Контент не изменился (игнорирую время): {file_name}')
+                        skipped_count += 1
+                        continue
+                    
                 git_mtime = self.github_client.get_file_commit_time(owner, repo, remote_path)
                 should_update = False
                 
@@ -144,15 +161,9 @@ class ProfileSync:
                     logger.log('DEBUG', f'Новый файл для отправки: {file_name}', 'ok')
                     should_update = True
                 else:
-                    local_mtime = profile.stat().st_mtime
-                    
-                    if local_mtime > (git_mtime + 5.0):
-                        logger.log('DEBUG', f'Локальный новее: {file_name}', 'ok')
-                        should_update = True
-                    else:
-                        skipped_count += 1
-                        logger.log('DEBUG', f'Не изменился: {file_name}')
-                
+                    logger.log('DEBUG', f'Профиль был изменен в игре: {file_name}', 'ok')
+                    should_update = True
+
                 if should_update:
                     logger.log('SYNC', f'Отправляю {file_name} на GitHub...')
                     if self.github_client.upload_file(owner, repo, remote_path, profile):

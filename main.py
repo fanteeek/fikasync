@@ -118,13 +118,17 @@ class SPTGameSync:
             
         # Запуск игры
         if should_launch_game:
+            
+            self.logger.log('SYSTEM', 'Создаю снимок состояния профилей...')
+            initial_snapshot = self.profile_sync.get_profiles_snapshot()
+            
             game_success = self.game_launcher.launch_and_monitor()
             
             if game_success:
                 self.logger.log('SYSTEM', 'Игра завершена, проверяю изменения...', 'ok')
                 
                 # Синхронизация изменений (Local -> GitHub)
-                sync_success = self.profile_sync.sync_changes_after_game(owner, repo)
+                sync_success = self.profile_sync.sync_changes_after_game(owner, repo, initial_snapshot)
                 
                 if sync_success:
                     self.logger.log('SYSTEM', 'Синхронизация завершена успешно!', 'ok')
