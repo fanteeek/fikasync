@@ -1,9 +1,12 @@
 # python
 __pycache__/
+__init__.py
 *.pyc
 .venv/
 venv/
 env/
+build/
+dist/
 
 # env/config
 .env
@@ -24,6 +27,7 @@ tmp/
 logs/
 *.tmp
 *.temp
+*.spec
 
 # IDE
 .idea/
