@@ -1,7 +1,8 @@
 import os
 import shutil
+import hashlib
 from pathlib import Path
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 from utils.logger import Logger
 
 logger = Logger()
@@ -11,6 +12,20 @@ class ProfileSync:
         self.config = config
         self.github_client = github_client
         self.file_manager = file_manager
+    
+    def _calculate_file_hash(self, file_path: Path) -> Optional[str]:
+        if not file_path.exists():
+            return None
+        
+        sha256_hash = hashlib.sha256()
+        try:
+            with open(file_path, 'rb') as f:
+                for byte_block in iter(lambda: f.read(4096), b''):
+                    sha256_hash.update(byte_block)
+            return sha256_hash.hexdigest()
+        except Exception as e:
+            logger.log('DEBUG', f'Ошибка хеширования {file_path.name}: {e}', 'warn')
+            return None
     
     def compare_profiles(self, owner: str, repo: str, github_files: List[Path]) -> Tuple[List[Path], List[Path], Dict[str, float]]:
         logger.log('SYNC', 'Сравниваю профили...')
@@ -24,38 +39,41 @@ class ProfileSync:
         
         for github_file in github_files:
             local_file = self.config.GAME_PROFILES_PATH / github_file.name
+            file_name = github_file.name
             
-            # Получаем время последнего коммита
-            git_mtime = self.github_client.get_file_commit_time(
-                owner, repo, f'profiles/{github_file.name}'
-            )
-            
-            if git_mtime is not None:
-                git_times[github_file.name] = git_mtime
-            
-            if git_mtime is None:
-                git_mtime = github_file.stat().st_mtime
-                logger.log('DEBUG', f'Использую время файла для {github_file.name}', '')
-            
-            # Если локального файла нет — нужно обновить
             if not local_file.exists():
+                logger.log('DEBUG', f'Новый файл: {file_name}', 'ok')
                 files_to_update.append(github_file)
-                logger.log('DEBUG', f'Новый файл: {github_file.name}', 'ok')
+                t = self.github_client.get_file_commit_time(owner, repo, f'profiles/{file_name}')
+                if t: git_times[file_name] = t
                 continue
             
-            # Сравниваем время
+            remote_hash = self._calculate_file_hash(github_file)
+            local_hash = self._calculate_file_hash(local_file)
+            
+            if remote_hash and local_file and remote_hash == local_hash:
+                logger.log('DEBUG', f'Идентичен (Hash): {file_name}')
+                files_to_skip.append(github_file)
+                continue
+            
+            logger.log('DEBUG', f'Файл изменился: {file_name}. Проверяю время...', 'warn')
+            
+            git_mtime = self.github_client.get_file_commit_time(owner, repo, f'profiles/{file_name}')
+            
+            if git_mtime is not None:
+                git_times[file_name] = git_mtime
+            else:
+                git_mtime = github_file.stat().st_mtime
+            
             local_mtime = local_file.stat().st_mtime
             
-            logger.log('DEBUG', f'local: {local_mtime}')
-            logger.log('DEBUG', f'local: {git_mtime}')
-            
-            if git_mtime > local_mtime:
+            if git_mtime > (local_mtime + 2.0):
                 files_to_update.append(github_file)
-                logger.log('DEBUG', f'Новее: {github_file.name}', 'ok')
+                logger.log('DEBUG', f'GitHub файл новее: {file_name}', 'ok')
             else:
                 files_to_skip.append(github_file)
-                logger.log('DEBUG', f'Актуален: {github_file.name}', '')
-        
+                logger.log('DEBUG', f'Локальный новее/актуален: {file_name}', 'ok')
+               
         return files_to_update, files_to_skip, git_times
     
     def update_profiles(self, github_profiles_path: Path, files_to_update: List[Path], git_times: Dict[str, float]) -> Tuple[int, int]:
@@ -79,7 +97,7 @@ class ProfileSync:
                         self.config.SCRIPT_DIR / 'backups'
                     )
                     if backup_file:
-                        logger.log('BACKUP', f'Бэкап: {backup_file.name}', '')
+                        logger.log('DEBUG', f'Бэкап: {backup_file.name}', '')
                 
                 # Копируем
                 shutil.copy2(github_file, local_file)
@@ -102,33 +120,58 @@ class ProfileSync:
         return updated_count, error_count
     
     def sync_changes_after_game(self, owner: str, repo: str) -> bool:
-        logger.log('SYNC', 'Синхронизирую изменения с GitHub...')
+        logger.log('SYNC', 'Проверяю локальные изменения для отправки...')
         
         try:
             local_profiles = list(self.config.GAME_PROFILES_PATH.glob('*.json'))
             
             if not local_profiles:
-                logger.log('SYNC', 'Нет профилей для синхронизации', 'warn')
+                logger.log('SYNC', 'Нет локальных профилей', 'warn')
                 return True
             
-            success_count = 0
-            total_count = len(local_profiles)
+            uploaded_count = 0
+            skipped_count = 0
+            error_count = 0
             
             for profile in local_profiles:
-                remote_path = f'profiles/{profile.name}'
-                if self.github_client.upload_file(owner, repo, remote_path, profile):
-                    success_count += 1
-            
-            if success_count == total_count:
-                logger.log('SYNC', f'Все {success_count} файлов синхронизированы', 'ok')
-                return True
-            elif success_count > 0:
-                logger.log('SYNC', f'Синхронизировано {success_count}/{total_count} файлов', 'warn')
-                return True
-            else:
-                logger.log('SYNC', 'Не удалось синхронизировать файлы', 'error')
-                return False
+                file_name = profile.name
+                remote_path = f'profiles/{file_name}'
                 
+                git_mtime = self.github_client.get_file_commit_time(owner, repo, remote_path)
+                should_update = False
+                
+                if git_mtime is None:
+                    logger.log('DEBUG', f'Новый файл для отправки: {file_name}', 'ok')
+                    should_update = True
+                else:
+                    local_mtime = profile.stat().st_mtime
+                    
+                    if local_mtime > (git_mtime + 5.0):
+                        logger.log('DEBUG', f'Локальный новее: {file_name}', 'ok')
+                        should_update = True
+                    else:
+                        skipped_count += 1
+                        logger.log('DEBUG', f'Не изменился: {file_name}')
+                
+                if should_update:
+                    logger.log('SYNC', f'Отправляю {file_name} на GitHub...')
+                    if self.github_client.upload_file(owner, repo, remote_path, profile):
+                        uploaded_count += 1
+                    else:
+                        error_count += 1
+                        
+            if uploaded_count > 0:
+                logger.log('SYNC', f'Успешно отправлено файлов: {uploaded_count}', 'ok')
+            elif error_count == 0:
+                logger.log('SYNC', 'Нет новых изменений для отправки', 'ok')
+                
+            if error_count > 0:
+                logger.log('SYNC', f'Ошибок при отправке: {error_count}', 'error')
+                return False
+            
+            return True
+        
         except Exception as e:
-            logger.log('SYNC', f'Ошибка синхронизации: {e}', 'error')
+            logger.log('SYNC', f'Ошибка процесса отправки: {e}', 'error')
             return False
+            
