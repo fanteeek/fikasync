@@ -8,6 +8,7 @@ from gitpy.github_downloader import GitHubDownloader
 from utils.file_manager import FileManager
 from utils.profile_sync import ProfileSync
 from utils.game_launcher import GameLauncher
+from utils.updater import AutoUpdater
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -37,6 +38,7 @@ class SPTGameSync:
     def __init__(self):
         self.logger = Logger()
         self.config = Config()
+        self.updater = AutoUpdater(self.config)
         self.github_client = GitHubClient(self.config.GITHUB_PAT)
         self.github_downloader = GitHubDownloader(self.github_client)
         self.file_manager = FileManager()
@@ -44,6 +46,9 @@ class SPTGameSync:
         self.game_launcher = GameLauncher(self.config)
     
     def run(self) -> bool:
+        if self.updater.check_and_update():
+            return True
+        
         # Проверка токена
         if not self.github_client.test_token():
             self.logger.error_and_exit('AUTH', 'Неверный GitHub токен')
