@@ -90,12 +90,12 @@ public class ProfileSync
             AnsiConsole.Write(table);
             if (uploadCount > 0)
             {
-                AnsiConsole.MarkupLine($"[green]Успешно синхронизировано профилей: {uploadCount}[/]");
+                Logger.Info($"[green]Успешно синхронизировано профилей: {uploadCount}[/]");
             }
         }
         else
         {
-            AnsiConsole.MarkupLine("[gray]Локальных изменений нет. Всё синхронизировано.[/]");
+            Logger.Info("[gray]Локальных изменений нет. Всё синхронизировано.[/]");
         }
     }
 
@@ -178,11 +178,11 @@ public class ProfileSync
 
         if (updatedCount > 0)
         {
-            AnsiConsole.MarkupLine($"[green]Успешно обновлено профилей: {updatedCount}[/]");
+            Logger.Info($"[green]Успешно обновлено профилей: {updatedCount}[/]");
         }
         else
         {
-            AnsiConsole.MarkupLine("[gray]Все профили актуальны/новее, обновлений нет.[/]");
+            Logger.Info("[gray]Все профили актуальны/новее, обновлений нет.[/]");
         }
     }
 
@@ -202,7 +202,7 @@ public class ProfileSync
         }
         catch
         {
-            AnsiConsole.MarkupLine($"[yellow]![/] Не удалось создать бэкап для {Path.GetFileName(filePath)}");
+            Logger.Error($"[white on red]×[/] Не удалось создать бэкап для {Path.GetFileName(filePath)}");
         }
     }
 }

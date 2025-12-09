@@ -1,5 +1,4 @@
 ﻿using Spectre.Console;
-using System.Reflection;
 using FikaSync;
 
 class Program
@@ -7,34 +6,37 @@ class Program
     static async Task Main(string[] args)
     {
 
+        Logger.Debug($"Application started. Args: {string.Join(" ", args)}");
+
         if (args.Contains("-d") || args.Contains("--debug"))
              Logger.Enable();
+             Logger.Debug("Debug mode enabled via arguments");
 
         var config = new Config();
 
-        // Just Visual ///////////////////////////////////////////////////////////////
-        AnsiConsole.Write(new FigletText("Fika Sync").LeftJustified().Color(Color.Teal));
+        // Visual ///////////////////////////////////////////////////////////////
         string versionSuffix = Logger.IsDebugEnabled ? " [red](DEBUG MODE)[/]" : "";
-        AnsiConsole.Write(new Rule($"[green]v{config.AppVersion} C#[/]{versionSuffix}"));
-
+        Logger.Info($"[white on teal] FikaSync v{config.AppVersion}{versionSuffix} \n[/]");
         // Config ///////////////////////////////////////////////////////////////
-        AnsiConsole.MarkupLine("[gray]Загрузка конфигурации...[/]");
+        Logger.Info("[gray]Загрузка конфигурации...[/]");
 
-        Logger.Log($"Рабочая папка: [blue]{config.BaseDir}[/]");
-        Logger.Log($"Путь к профилям: [blue]{config.GameProfilesPath}[/]");
-        Logger.Log($"Путь к профилям: [blue]{config.GithubToken}[/]");
-        Logger.Log($"Путь к профилям: [blue]{config.RepoUrl}[/]");
+        Logger.Debug($"Рабочая папка: [blue]{config.BaseDir}[/]");
+        Logger.Debug($"Путь к профилям: [blue]{config.GameProfilesPath}[/]");
+        Logger.Debug($"GitHub Token: [blue]{(string.IsNullOrEmpty(config.GithubToken) ? "[red]Не найдено[/]" : $"[blue]{config.GithubToken}[/]")}[/]");
+        Logger.Debug($"GitHub URL: [blue]{(string.IsNullOrEmpty(config.RepoUrl) ? "[red]Не найдено[/]" : $"[blue]{config.GithubToken}[/]")}[/]");
+
+        config.EnsureConfiguration();
 
         if (!config.IsValid())
         {
-            AnsiConsole.MarkupLine("[red]×[/] Ошибка: Проверьте .env файл!");
+            Logger.Error("[white on red]×[/] Настройка не завершена. Выход.");
             Console.ReadLine();
             return;
         }
 
 
         // GitHub ///////////////////////////////////////////////////////////////
-        AnsiConsole.MarkupLine("[gray]Подключение к GitHub...[/]");
+        Logger.Info("[gray]Подключение к GitHub...[/]");
 
         var github = new GitHubClient(config.GithubToken);
 
@@ -49,7 +51,7 @@ class Program
             try
             {
                 var(owner, repo) = github.ExtractRepoInfo(config.RepoUrl);
-                AnsiConsole.MarkupLine($"Целевой репозиторий: [blue]{owner}/{repo}[/]");
+                Logger.Info($"Целевой репозиторий: [blue]{owner}/{repo}[/]");
 
                 string tempZipPath = Path.Combine(config.BaseDir, "temp", "repo.zip");
                 string extractPath = Path.Combine(config.BaseDir, "temp", "extracted");
@@ -57,7 +59,7 @@ class Program
                 string? extractedContentDir = null;
                 List<string>? foundProfiles = null;
                 
-                AnsiConsole.MarkupLine("[gray]Скачивание архива...[/]");
+                Logger.Info("[gray]Скачивание архива...[/]");
 
                 await AnsiConsole.Status()
                     .StartAsync("Загрузка данных...", async ctx =>
@@ -75,25 +77,24 @@ class Program
                 if (extractedContentDir != null && foundProfiles != null && foundProfiles.Count > 0)
                 {
                     AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine($"[bold]Найдено профилей в облаке:[/] {foundProfiles.Count}");
+                    Logger.Info($"[bold]Найдено профилей в облаке:[/] {foundProfiles.Count}");
 
                     var syncer = new ProfileSync(config);
                     syncer.SyncProfiles(extractedContentDir, foundProfiles);
 
                     FileManager.ForceDeleteDirectory(Path.Combine(config.BaseDir, "temp"));
-                } else AnsiConsole.MarkupLine("[yellow]![/] Профили в репозитории не найдены.");
+                } else Logger.Info("[yellow]![/] Профили в репозитории не найдены.");
                 shouldLaunch = true;
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Ошибка синхронизации:[/]{ex.Message}");
+                Logger.Error($"[white on red]×[/] Ошибка синхронизации: {ex.Message}");
                 shouldLaunch = AnsiConsole.Confirm("Запустить игру без синхронизации?", defaultValue: true);
-                Logger.Log($"Exception: {ex}");
             }
         }
         else
         {
-            AnsiConsole.MarkupLine("[yellow]![/] Синхронизация пропущена (нет связи с GitHub).");
+            Logger.Info("[yellow]![/] Синхронизация пропущена (нет связи с GitHub).");
             shouldLaunch = AnsiConsole.Confirm("Запустить игру без синхронизации?", defaultValue: true);
         }
 
@@ -109,7 +110,7 @@ class Program
             {
                 AnsiConsole.WriteLine();
                 AnsiConsole.Write(new Rule("[yellow]Синхронизация[/]"));
-                AnsiConsole.MarkupLine("[gray]Проверка локальных изменений...[/]");
+                Logger.Info("[gray]Проверка локальных изменений...[/]");
 
                 try 
                  {
@@ -118,15 +119,15 @@ class Program
                  }
                  catch (Exception ex)
                  {
-                    AnsiConsole.MarkupLine($"[red]Ошибка при отправке: {ex}[/]");
+                    Logger.Error($"[white on red]×[/] Ошибка при отправке: {ex}");
                  }
             }
         }
         else
-            AnsiConsole.MarkupLine("[gray]Запуск отменен или сервер был крашнут.[/]");
+            Logger.Info("[gray]Запуск отменен или сервер был крашнут.[/]");
 
         Console.WriteLine();
-        AnsiConsole.MarkupLine("Нажмите [blue]Enter[/] чтобы выйти.");
+        Logger.Info("Нажмите [blue]Enter[/] чтобы выйти.");
         Console.ReadLine();
     }
 }

@@ -28,18 +28,18 @@ public class GitHubClient
                 var jsonString = await response.Content.ReadAsStringAsync();
                 var data = JsonNode.Parse(jsonString);
                 string login = data?["login"]?.ToString() ?? "Unknown";
-                AnsiConsole.MarkupLine($"[green]√[/] Авторизован как: [bold]{login}[/]");
+                Logger.Info($"[green]√[/] Авторизован как: [bold]{login}[/]");
                 return true;
             }
             else
             {
-                AnsiConsole.MarkupLine($"[red]×[/] Ошибка GitHub: {response.StatusCode}");
+                Logger.Error($"[white on red]×[/] Ошибка GitHub: {response.StatusCode}");
                 return false;
             }
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[red]×[/] Ошибка сети: {ex.Message}");
+            Logger.Error($"[white on red]×[/] Ошибка сети: {ex.Message}");
             return false;
         }
     }
@@ -68,7 +68,7 @@ public class GitHubClient
 
             if (!response.IsSuccessStatusCode)
             {
-                AnsiConsole.MarkupLine($"[red]×[/] Ошибка скачивания: {response.StatusCode}");
+                Logger.Error($"[white on red]×[/] Ошибка скачивания: {response.StatusCode}");
                 return false;
             }
 
@@ -87,7 +87,7 @@ public class GitHubClient
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[red]×[/] Критическая ошибка скачивания: {ex.Message}");
+            Logger.Error($"[white on red]×[/] Критическая ошибка скачивания: {ex.Message}");
             return false;
         }
     }
@@ -120,18 +120,18 @@ public class GitHubClient
 
             if (response.IsSuccessStatusCode)
             {
-                AnsiConsole.MarkupLine($"[green]√[/] Файл отправлен: {Path.GetFileName(filePath)}");
+                Logger.Info($"[green]√[/] Файл отправлен: {Path.GetFileName(filePath)}");
                 return true;
             }
             else
             {
-                AnsiConsole.MarkupLine($"[red]×[/] Ошибка отправки {filePath}: {response.StatusCode}");
+                Logger.Error($"[white on red]×[/] Ошибка отправки {filePath}: {response.StatusCode}");
                 return false;
             }
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[red]×[/] Критическая ошибка отправки: {ex.Message}");
+            Logger.Error($"[white on red]×[/] Критическая ошибка отправки: {ex.Message}");
             return false;
         }
     }

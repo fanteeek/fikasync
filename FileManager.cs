@@ -15,7 +15,7 @@ public static class FileManager
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[yellow]![/] Не удалось удалить папку {path}: {ex.Message}");
+            Logger.Error($"[white on red]×[/] Не удалось удалить папку {path}: {ex.Message}");
         }
     }
 
@@ -32,7 +32,7 @@ public static class FileManager
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[red]×[/] Ошибка распаковки: {ex.Message}");
+            Logger.Error($"[white on red]×[/] Ошибка распаковки: {ex.Message}");
             return null;
         }
     }

@@ -54,14 +54,14 @@ public class GameLauncher
                         _targetIp = (rawIp == "0.0.0.0") ? "127.0.0.1" : rawIp;
                     }
 
-                    AnsiConsole.MarkupLine($"[gray]Найден конфиг:[/] {Path.GetFileName(path)} -> [blue]{_targetIp}:{_targetPort}[/]");
+                    Logger.Debug($"[gray]Найден конфиг:[/] {Path.GetFileName(path)} -> [blue]{_targetIp}:{_targetPort}[/]");
                     return;
                 }
                 catch {}
             }
         }
 
-        AnsiConsole.MarkupLine($"[gray]Конфиги не найдены, использую стандарт:[/]{_targetIp}:{_targetPort}");
+        Logger.Debug($"[gray]Конфиги не найдены, использую стандарт:[/]{_targetIp}:{_targetPort}");
     }
 
     private async Task<bool> IsPortOpen(string host, int port)
@@ -89,14 +89,14 @@ public class GameLauncher
         // Start Server
         if (!File.Exists(_config.SptServerPath))
         {
-            AnsiConsole.MarkupLine($"[red]×[/] Не найден файл сервера: {_config.SptServerPath}");
+            Logger.Error($"[white on red]×[/] Не найден файл сервера: {_config.SptServerPath}");
             return false;
         }
 
         DetectServerConfig();
 
         AnsiConsole.Write(new Rule("[yellow]Запуск игры[/]"));
-        AnsiConsole.MarkupLine("[gray]Запускаю SPT Server...[/]");
+        Logger.Info("[gray]Запускаю SPT Server...[/]");
 
         var serverInfo = new ProcessStartInfo
         {
@@ -110,7 +110,7 @@ public class GameLauncher
 
         if (serverProcess == null)
         {
-            AnsiConsole.MarkupLine("[red]Не удалось запустить процесс сервера![/]");
+            Logger.Error("[white on red]×[/] Не удалось запустить процесс сервера!");
             return false;
         }
 
@@ -146,23 +146,23 @@ public class GameLauncher
 
         if (serverProcess.HasExited)
         {
-            AnsiConsole.MarkupLine("[red]Сервер закрылся неожиданно! (Разверните окно сервера для проверки ошибок)[/]");
+            Logger.Error("[white on red]×[/] Сервер закрылся неожиданно!");
             return false;
         }
 
         if (!serverReady)
         {
-            AnsiConsole.MarkupLine("[yellow]![/] Таймаут ожидания порта. Пробуем запустить лаунчер...[/]");
+            Logger.Info("[yellow]![/] Таймаут ожидания порта. Пробуем запустить лаунчер...[/]");
         }
         else
         {
-            AnsiConsole.MarkupLine($"[green]√[/] Сервер успешно загрузился {_targetIp}:{_targetPort}");
+            Logger.Info($"[green]√[/] Сервер успешно загрузился [green]{_targetIp}:{_targetPort}[/]");
         }
 
         // Launcher Start
         if (File.Exists(_config.SptLauncherPath))
         {
-            AnsiConsole.MarkupLine("[gray]Открываю Лаунчер...[/]");
+            Logger.Info("[gray]Открываю Лаунчер...[/]");
             Process.Start(new ProcessStartInfo
             {
                 FileName = _config.SptLauncherPath,
@@ -172,26 +172,28 @@ public class GameLauncher
         }
         else
         {
-            AnsiConsole.MarkupLine("[red]Лаунчер не был найден![/]");
+            Logger.Error("[white on red]×[/] Лаунчер не был найден!");
         }
 
         AnsiConsole.WriteLine();
 
-        var panel = new Panel("Нажмите [bold red]ENTER[/] в этом окне,\nчтобы закрыть сервер и синхронизировать профиль.");
+        string textPanel = "Нажмите [bold red]ENTER[/] в этом окне,\nчтобы закрыть сервер и синхронизировать профиль.";
+        var panel = new Panel(textPanel);
         panel.Border = BoxBorder.Rounded;
         panel.Header = new PanelHeader("Игра запущена");
         AnsiConsole.Write(panel);
+        Logger.Debug(textPanel);
         
         Console.ReadLine();
 
-        AnsiConsole.MarkupLine("[gray]Закрываю сервер...[/]");
+        Logger.Info("[gray]Закрываю сервер...[/]");
         try
         {
             if (!serverProcess.HasExited)
             {
                 serverProcess.Kill();
                 serverProcess.WaitForExit(); 
-                AnsiConsole.MarkupLine("[green]√[/] Сервер остановлен.");
+                Logger.Info("[green]√[/] Сервер остановлен.");
             }
         }
         catch {}

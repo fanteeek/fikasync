@@ -48,13 +48,13 @@ public class Updater
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[gray]Версия программы актуальна (v{currentVersion})[/]");
+                    Logger.Info($"[gray]Версия программы актуальна (v{currentVersion})[/]");
                 }
             }
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[gray]Не удалось проверить обновления: {ex.Message}[/]");
+            Logger.Error($"[white on red]×[/] Не удалось проверить обновления: {ex.Message}");
         }
     }
 }
