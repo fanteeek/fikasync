@@ -1,4 +1,4 @@
-# 🔄 Fika Profile Sync
+# Fika Profile Sync
 
 ![C#](https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=c-sharp&logoColor=white)
 ![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
@@ -15,8 +15,9 @@
 
 ## Prerequisites
 
-1.  A **Private GitHub Repository** to store the profiles.
-2.  A **GitHub Fine-grained Personal Access Token** with `Contents: Read and Write` permissions (scoped specifically to your repository).
+1.  Need to install [.NET 9](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-9.0.9-windows-x64-installer)
+2.  A **Private GitHub Repository** to store the profiles.
+3.  A **GitHub Fine-grained Personal Access Token** with `Contents: Read and Write` permissions (scoped specifically to your repository).
 
 ## Getting Started
 
@@ -25,7 +26,7 @@ Download the latest `FikaSync.exe` from the [Releases](https://github.com/fantee
 **Important:** Place the executable inside your **root game folder** (right next to `EscapeFromTarkov.exe`).
 
 ### 2. Configuration
-Create a file named `.env` next to the executable (`.exe`). Open it with Notepad and add your settings:
+When you first launch the app, you will be prompted to enter your GitHub token and repository URL or you can create a file named `.env` next to the executable (`.exe`). Open it with Notepad and add your settings:
 
 ```env
 # Your GitHub Fine-grained Token
@@ -55,10 +56,6 @@ If you want to modify the code or build it yourself:
 3.  Run via terminal:
     ```bash
     dotnet run
-    ```
-4.  Publish as a single EXE:
-    ```bash
-    dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
     ```
 
 ## Troubleshooting
