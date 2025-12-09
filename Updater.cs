@@ -1,0 +1,60 @@
+using System.Reflection;
+using Spectre.Console;
+
+namespace FikaSync;
+
+public class Updater
+{
+    private readonly GitHubClient _client;
+    private readonly Config _config;
+    
+    private const string UpdateRepo = "fanteeek/fika-profiles-sync";
+
+    public Updater(GitHubClient client, Config config)
+    {
+        _client = client;
+        _config = config;
+    }
+
+    public async Task CheckForUpdates()
+    {
+        try
+        {
+            if (!Version.TryParse(_config.AppVersion, out Version? currentVersion))
+                currentVersion = new Version(0,0,0);
+            
+            string url = $"/repos/{UpdateRepo}/releases/latest";
+            var releaseInfo = await _client.GetLatestReleaseInfo(UpdateRepo);
+            if (releaseInfo == null) return; 
+
+            string tagName = releaseInfo.Value.TagName.TrimStart('v');
+            string htmlUrl = releaseInfo.Value.HtmlUrl;
+
+            if (Version.TryParse(tagName, out Version? latestVersion))
+            {
+                if (latestVersion > currentVersion)
+                {
+                    var panel = new Panel(
+                        $"[yellow]Доступна новая версия:[/] [green]v{latestVersion}[/]\n" +
+                        $"Ваша версия: [gray]v{currentVersion}[/]\n\n" +
+                        $"Скачать: [blue underline]{htmlUrl}[/]"
+                    );
+                    panel.Header = new PanelHeader("[bold red]UPDATE AVAILABLE[/]");
+                    panel.Border = BoxBorder.Double;
+                    panel.Padding = new Padding(2, 1, 2, 1);
+                    AnsiConsole.WriteLine();
+                    AnsiConsole.Write(panel);
+                    AnsiConsole.WriteLine();
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[gray]Версия программы актуальна (v{currentVersion})[/]");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[gray]Не удалось проверить обновления: {ex.Message}[/]");
+        }
+    }
+}

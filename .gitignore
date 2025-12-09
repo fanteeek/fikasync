@@ -1,42 +1,5 @@
-# python
-__pycache__/
-__init__.py
-*.pyc
-.venv/
-venv/
-env/
-build/
-dist/
-
-# env/config
-.env
-.env.local
-config.local.json
-secrets.json
-
-# profiles
-github_profiles/
-profiles_repo/
-SPT/user/profiles/
-backup/
-
-# temp
-temp/
-tmp/
-*.log
-logs/
-*.tmp
-*.temp
-*.spec
-
-# IDE
-.idea/
+bin/
+obj/
 .vscode/
-*.iml
-
-# Системные файлы
-.DS_Store
-Thumbs.db
-
-# zip
-*.zip
+*.json
+!config.example.json
