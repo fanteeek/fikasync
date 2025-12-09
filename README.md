@@ -11,7 +11,7 @@
 
 *   **No Manual File Transfers:** Eliminates the need to manually send save files to the host or transfer them back to clients after playing solo. Everyone's progress is kept up-to-date on the server automatically.
 *   **Smart Synchronization:** Automatically handles download and upload of profiles based on file modification time.
-*   **Built with Spectre.Console:** Features a modern, beautiful, and interactive terminal interface.
+*   **Built with [Spectre.Console](https://github.com/spectreconsole/spectre.console):** Features a modern, beautiful, and interactive terminal interface.
 
 ## Prerequisites
 
