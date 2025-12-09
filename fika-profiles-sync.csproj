@@ -6,7 +6,7 @@
     <RootNamespace>fika_profiles_sync</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>0.0.1</Version> 
+    <Version>0.1</Version> 
     <Authors>fanteeek</Authors>
     <Product>FikaSync</Product>
   </PropertyGroup>
