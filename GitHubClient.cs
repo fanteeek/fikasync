@@ -28,18 +28,18 @@ public class GitHubClient
                 var jsonString = await response.Content.ReadAsStringAsync();
                 var data = JsonNode.Parse(jsonString);
                 string login = data?["login"]?.ToString() ?? "Unknown";
-                Logger.Info($"[green]√[/] Авторизован как: [bold]{login}[/]");
+                Logger.Info($"[green]√[/] Authorized as: [bold]{login}[/]");
                 return true;
             }
             else
             {
-                Logger.Error($"[white on red]×[/] Ошибка GitHub: {response.StatusCode}");
+                Logger.Error($"[white on red]×[/] GitHub error: {response.StatusCode}");
                 return false;
             }
         }
         catch (Exception ex)
         {
-            Logger.Error($"[white on red]×[/] Ошибка сети: {ex.Message}");
+            Logger.Error($"[white on red]×[/] Network error: {ex.Message}");
             return false;
         }
     }
@@ -56,7 +56,7 @@ public class GitHubClient
             return (owner, repo);
         }
 
-        throw new ArgumentException($"Некорректный GitHub URL: {url}");
+        throw new ArgumentException($"Incorrect GitHub URL: {url}");
     }
 
     public async Task<bool> DownloadRepository(string owner, string repo, string savePath)
@@ -68,7 +68,7 @@ public class GitHubClient
 
             if (!response.IsSuccessStatusCode)
             {
-                Logger.Error($"[white on red]×[/] Ошибка скачивания: {response.StatusCode}");
+                Logger.Error($"[white on red]×[/] Download error: {response.StatusCode}");
                 return false;
             }
 
@@ -87,7 +87,7 @@ public class GitHubClient
         }
         catch (Exception ex)
         {
-            Logger.Error($"[white on red]×[/] Критическая ошибка скачивания: {ex.Message}");
+            Logger.Error($"[white on red]×[/] Critical download error: {ex.Message}");
             return false;
         }
     }
@@ -120,18 +120,18 @@ public class GitHubClient
 
             if (response.IsSuccessStatusCode)
             {
-                Logger.Info($"[green]√[/] Файл отправлен: {Path.GetFileName(filePath)}");
+                Logger.Info($"[green]√[/] File sent: {Path.GetFileName(filePath)}");
                 return true;
             }
             else
             {
-                Logger.Error($"[white on red]×[/] Ошибка отправки {filePath}: {response.StatusCode}");
+                Logger.Error($"[white on red]×[/] Sending error {filePath}: {response.StatusCode}");
                 return false;
             }
         }
         catch (Exception ex)
         {
-            Logger.Error($"[white on red]×[/] Критическая ошибка отправки: {ex.Message}");
+            Logger.Error($"[white on red]×[/] Critical sending error: {ex.Message}");
             return false;
         }
     }

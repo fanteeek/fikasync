@@ -18,25 +18,25 @@ class Program
         string versionSuffix = Logger.IsDebugEnabled ? " [red](DEBUG MODE)[/]" : "";
         Logger.Info($"[white on teal] FikaSync v{config.AppVersion}{versionSuffix} \n[/]");
         // Config ///////////////////////////////////////////////////////////////
-        Logger.Info("[gray]Загрузка конфигурации...[/]");
+        Logger.Info("[gray]Loading configuration...[/]");
 
-        Logger.Debug($"Рабочая папка: [blue]{config.BaseDir}[/]");
-        Logger.Debug($"Путь к профилям: [blue]{config.GameProfilesPath}[/]");
-        Logger.Debug($"GitHub Token: [blue]{(string.IsNullOrEmpty(config.GithubToken) ? "[red]Не найдено[/]" : $"[blue]{config.GithubToken}[/]")}[/]");
-        Logger.Debug($"GitHub URL: [blue]{(string.IsNullOrEmpty(config.RepoUrl) ? "[red]Не найдено[/]" : $"[blue]{config.GithubToken}[/]")}[/]");
+        Logger.Debug($"Working folder: [blue]{config.BaseDir}[/]");
+        Logger.Debug($"Path to profiles: [blue]{config.GameProfilesPath}[/]");
+        Logger.Debug($"GitHub Token: [blue]{(string.IsNullOrEmpty(config.GithubToken) ? "[red]Not found[/]" : $"[blue]{config.GithubToken}[/]")}[/]");
+        Logger.Debug($"GitHub URL: [blue]{(string.IsNullOrEmpty(config.RepoUrl) ? "[red]Not found[/]" : $"[blue]{config.GithubToken}[/]")}[/]");
 
         config.EnsureConfiguration();
 
         if (!config.IsValid())
         {
-            Logger.Error("[white on red]×[/] Настройка не завершена. Выход.");
+            Logger.Error("[white on red]×[/] Setup not complete. Exit.");
             Console.ReadLine();
             return;
         }
 
 
         // GitHub ///////////////////////////////////////////////////////////////
-        Logger.Info("[gray]Подключение к GitHub...[/]");
+        Logger.Info("[gray]Connecting to GitHub...[/]");
 
         var github = new GitHubClient(config.GithubToken);
 
@@ -51,7 +51,7 @@ class Program
             try
             {
                 var(owner, repo) = github.ExtractRepoInfo(config.RepoUrl);
-                Logger.Info($"Целевой репозиторий: [blue]{owner}/{repo}[/]");
+                Logger.Info($"Target repository: [blue]{owner}/{repo}[/]");
 
                 string tempZipPath = Path.Combine(config.BaseDir, "temp", "repo.zip");
                 string extractPath = Path.Combine(config.BaseDir, "temp", "extracted");
@@ -59,15 +59,15 @@ class Program
                 string? extractedContentDir = null;
                 List<string>? foundProfiles = null;
                 
-                Logger.Info("[gray]Скачивание архива...[/]");
+                Logger.Info("[gray]Downloading archive...[/]");
 
                 await AnsiConsole.Status()
-                    .StartAsync("Загрузка данных...", async ctx =>
+                    .StartAsync("Loading data...", async ctx =>
                     {
                         bool downloaded = await github.DownloadRepository(owner, repo, tempZipPath);
-                        if (!downloaded) throw new Exception("Не удалось скачать файл");
+                        if (!downloaded) throw new Exception("Failed to download file");
 
-                        ctx.Status("Распаковка...");
+                        ctx.Status("Unpacking...");
                         extractedContentDir = FileManager.ExtractZip(tempZipPath, extractPath);
 
                         if (extractedContentDir != null)
@@ -77,25 +77,25 @@ class Program
                 if (extractedContentDir != null && foundProfiles != null && foundProfiles.Count > 0)
                 {
                     AnsiConsole.WriteLine();
-                    Logger.Info($"[bold]Найдено профилей в облаке:[/] {foundProfiles.Count}");
+                    Logger.Info($"[bold]Profiles found in the cloud:[/] {foundProfiles.Count}");
 
                     var syncer = new ProfileSync(config);
                     syncer.SyncProfiles(extractedContentDir, foundProfiles);
 
                     FileManager.ForceDeleteDirectory(Path.Combine(config.BaseDir, "temp"));
-                } else Logger.Info("[yellow]![/] Профили в репозитории не найдены.");
+                } else Logger.Info("[yellow]![/] No profiles found in the repository.");
                 shouldLaunch = true;
             }
             catch (Exception ex)
             {
-                Logger.Error($"[white on red]×[/] Ошибка синхронизации: {ex.Message}");
-                shouldLaunch = AnsiConsole.Confirm("Запустить игру без синхронизации?", defaultValue: true);
+                Logger.Error($"[white on red]×[/] Synchronization error: {ex.Message}");
+                shouldLaunch = AnsiConsole.Confirm("Start the game without synchronization?", defaultValue: true);
             }
         }
         else
         {
-            Logger.Info("[yellow]![/] Синхронизация пропущена (нет связи с GitHub).");
-            shouldLaunch = AnsiConsole.Confirm("Запустить игру без синхронизации?", defaultValue: true);
+            Logger.Info("[yellow]![/] Synchronization skipped (no connection to GitHub).");
+            shouldLaunch = AnsiConsole.Confirm("Start the game without synchronization?", defaultValue: true);
         }
 
         if (shouldLaunch)
@@ -109,8 +109,8 @@ class Program
             if (isAuthSuccess && !string.IsNullOrEmpty(config.RepoUrl) && gamePlayedSuccessfully)
             {
                 AnsiConsole.WriteLine();
-                AnsiConsole.Write(new Rule("[yellow]Синхронизация[/]"));
-                Logger.Info("[gray]Проверка локальных изменений...[/]");
+                AnsiConsole.Write(new Rule("[yellow]Synchronization[/]"));
+                Logger.Info("[gray]Checking local changes...[/]");
 
                 try 
                  {
@@ -119,15 +119,15 @@ class Program
                  }
                  catch (Exception ex)
                  {
-                    Logger.Error($"[white on red]×[/] Ошибка при отправке: {ex}");
+                    Logger.Error($"[white on red]×[/] Error sending: {ex}");
                  }
             }
         }
         else
-            Logger.Info("[gray]Запуск отменен или сервер был крашнут.[/]");
+            Logger.Info("[gray]The launch has been canceled or the server has crashed.[/]");
 
         Console.WriteLine();
-        Logger.Info("Нажмите [blue]Enter[/] чтобы выйти.");
+        Logger.Info("Press [blue]Enter[/] to exit.");
         Console.ReadLine();
     }
 }

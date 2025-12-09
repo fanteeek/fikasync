@@ -35,9 +35,9 @@ public class Updater
                 if (latestVersion > currentVersion)
                 {
                     var panel = new Panel(
-                        $"[yellow]Доступна новая версия:[/] [green]v{latestVersion}[/]\n" +
-                        $"Ваша версия: [gray]v{currentVersion}[/]\n\n" +
-                        $"Скачать: [blue underline]{htmlUrl}[/]"
+                        $"[yellow]New version available:[/] [green]v{latestVersion}[/]\n" +
+                        $"Your version: [gray]v{currentVersion}[/]\n\n" +
+                        $"Download: [blue underline]{htmlUrl}[/]"
                     );
                     panel.Header = new PanelHeader("[bold red]UPDATE AVAILABLE[/]");
                     panel.Border = BoxBorder.Double;
@@ -48,13 +48,13 @@ public class Updater
                 }
                 else
                 {
-                    Logger.Info($"[gray]Версия программы актуальна (v{currentVersion})[/]");
+                    Logger.Info($"[gray]The program version is up to date. (v{currentVersion})[/]");
                 }
             }
         }
         catch (Exception ex)
         {
-            Logger.Error($"[white on red]×[/] Не удалось проверить обновления: {ex.Message}");
+            Logger.Error($"[white on red]×[/] Unable to check for updates: {ex.Message}");
         }
     }
 }

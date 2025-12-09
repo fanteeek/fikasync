@@ -52,15 +52,15 @@ public class Config
         // check token
         if (string.IsNullOrWhiteSpace(GithubToken))
         {
-            Logger.Info("[yellow]![/] GitHub Token не найден.");
+            Logger.Info("[yellow]![/] GitHub Token not found.");
 
             GithubToken = AnsiConsole.Prompt(
-                new TextPrompt<string>("Введите ваш [green]GitHub PAT[/]:")
+                new TextPrompt<string>("Enter your [green]GitHub PAT[/]:")
                     .Secret()
                     .Validate(token => 
                         token.Length > 10 
                             ? ValidationResult.Success() 
-                            : ValidationResult.Error("[white on red]×[/] Токен слишком короткий!")));
+                            : ValidationResult.Error("[white on red]×[/] The token is too short.!")));
             
             UpdateEnvFile("GITHUB_PAT", GithubToken);
             configChanged = true;
@@ -69,14 +69,14 @@ public class Config
         // check Url
         if (string.IsNullOrWhiteSpace(RepoUrl))
         {
-            Logger.Info("[yellow]![/] URL репозитория не найден.");
+            Logger.Info("[yellow]![/] Repository URL not found.");
             
             RepoUrl = AnsiConsole.Prompt(
-                new TextPrompt<string>("Введите [green]HTTPS URL[/] репозитория:")
+                new TextPrompt<string>("Enter [green]HTTPS URL[/] repositories:")
                     .Validate(url => 
                         url.StartsWith("https://github.com/") 
                             ? ValidationResult.Success() 
-                            : ValidationResult.Error("[white on red]×[/] Ссылка должна начинаться с https://github.com/")));
+                            : ValidationResult.Error("[white on red]×[/] The link must begin with https://github.com/")));
 
             UpdateEnvFile("REPO_URL", RepoUrl);
             configChanged = true;
@@ -84,7 +84,7 @@ public class Config
 
         if (configChanged)
         {
-            Logger.Info("[green]√[/] Настройки сохранены в файл .env");
+            Logger.Info("[green]√[/] Settings are saved in the .env file.");
             AnsiConsole.WriteLine();
         }
     }
@@ -114,7 +114,7 @@ public class Config
         }
         catch (Exception ex)
         {
-            Logger.Error($"[white on red]×[/] Ошибка записи .env: {ex.Message}");
+            Logger.Error($"[white on red]×[/] Error writing .env: {ex.Message}");
         }
     }
 

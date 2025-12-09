@@ -15,7 +15,7 @@ public static class FileManager
         }
         catch (Exception ex)
         {
-            Logger.Error($"[white on red]×[/] Не удалось удалить папку {path}: {ex.Message}");
+            Logger.Error($"[white on red]×[/] Unable to delete folder {path}: {ex.Message}");
         }
     }
 
@@ -32,7 +32,7 @@ public static class FileManager
         }
         catch (Exception ex)
         {
-            Logger.Error($"[white on red]×[/] Ошибка распаковки: {ex.Message}");
+            Logger.Error($"[white on red]×[/] Unpacking error: {ex.Message}");
             return null;
         }
     }

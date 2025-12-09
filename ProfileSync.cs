@@ -34,10 +34,10 @@ public class ProfileSync
         var currentSnapshot = GetProfilesSnapshot();
 
         var table = new Table();
-        table.Title("Выгрузка изменений (Upload)");
-        table.AddColumn("Профиль");
-        table.AddColumn("Статус");
-        table.AddColumn("Результат");
+        table.Title("Uploading changes");
+        table.AddColumn("Profile");
+        table.AddColumn("Status");
+        table.AddColumn("Result");
         table.Border(TableBorder.Rounded);
 
         int uploadCount = 0;
@@ -56,13 +56,13 @@ public class ProfileSync
             {
                 if (initialSnapshot[fileName] != currentHash)
                 {
-                    statusTag = "[yellow]Изменен[/]";
+                    statusTag = "[yellow]Changed[/]";
                     needsUpload = true;
                 }
             }
             else
             {
-                statusTag = "[green]Новый[/]";
+                statusTag = "[green]New[/]";
                 needsUpload = true;
             }
 
@@ -75,12 +75,12 @@ public class ProfileSync
                 bool success = await client.UploadFile(owner, repo, repoPath, content);
                 if (success)
                 {
-                    table.AddRow(fileName, statusTag, "[green]Отправлен[/]");
+                    table.AddRow(fileName, statusTag, "[green]Sent[/]");
                     uploadCount++;
                 }
                 else
                 {
-                    table.AddRow(fileName, statusTag, "[red]Ошибка[/]");
+                    table.AddRow(fileName, statusTag, "[red]Error[/]");
                 }
             }
         }
@@ -90,12 +90,12 @@ public class ProfileSync
             AnsiConsole.Write(table);
             if (uploadCount > 0)
             {
-                Logger.Info($"[green]Успешно синхронизировано профилей: {uploadCount}[/]");
+                Logger.Info($"[green]Successfully synchronized profiles: {uploadCount}[/]");
             }
         }
         else
         {
-            Logger.Info("[gray]Локальных изменений нет. Всё синхронизировано.[/]");
+            Logger.Info("[gray]There are no local changes. Everything is synchronized.[/]");
         }
     }
 
@@ -116,9 +116,9 @@ public class ProfileSync
     public void SyncProfiles(string extractedFolder, List<string> downloadedFiles)
     {
         var table = new Table();
-        table.AddColumn("Файл");
-        table.AddColumn("Статус");
-        table.AddColumn("Действие");
+        table.AddColumn("File");
+        table.AddColumn("Status");
+        table.AddColumn("Action");
 
         int updatedCount = 0;
 
@@ -137,7 +137,7 @@ public class ProfileSync
 
             if (localHash == remoteHash)
             {
-                table.AddRow(fileName, "[green]Актуален[/]", "[gray]Пропуск[/]");
+                table.AddRow(fileName, "[green]Relevant[/]", "[gray]Pass[/]");
                 continue;
             }
 
@@ -148,7 +148,7 @@ public class ProfileSync
 
                 if (remoteTime <= localTime.AddSeconds(2))
                 {
-                    table.AddRow(fileName, "[blue]Локальный новее[/]", "[yellow]Будет отправлен[/]");
+                    table.AddRow(fileName, "[blue]Local newer[/]", "[yellow]Will be sent[/]");
                     continue;
                 }
             }
@@ -165,12 +165,12 @@ public class ProfileSync
                 var originalTime = File.GetLastWriteTime(downloadedFile);
                 File.SetLastWriteTime(localFile, originalTime);
 
-                table.AddRow(fileName, "[yellow]Обновлен[/]", "[blue]Загружен с GitHub[/]");
+                table.AddRow(fileName, "[yellow]Updated[/]", "[blue]Downloaded from GitHub[/]");
                 updatedCount++;
             }
             catch (Exception ex)
             {
-                table.AddRow(fileName, "[red]Ошибка[/]", ex.Message);
+                table.AddRow(fileName, "[red]Error[/]", ex.Message);
             }
         }
 
@@ -178,11 +178,11 @@ public class ProfileSync
 
         if (updatedCount > 0)
         {
-            Logger.Info($"[green]Успешно обновлено профилей: {updatedCount}[/]");
+            Logger.Info($"[green]Profiles successfully updated: {updatedCount}[/]");
         }
         else
         {
-            Logger.Info("[gray]Все профили актуальны/новее, обновлений нет.[/]");
+            Logger.Info("[gray]All profiles are current/newer, no updates.[/]");
         }
     }
 
@@ -202,7 +202,7 @@ public class ProfileSync
         }
         catch
         {
-            Logger.Error($"[white on red]×[/] Не удалось создать бэкап для {Path.GetFileName(filePath)}");
+            Logger.Error($"[white on red]×[/] Failed to create backup for {Path.GetFileName(filePath)}");
         }
     }
 }

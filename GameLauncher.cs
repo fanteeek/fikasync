@@ -54,14 +54,14 @@ public class GameLauncher
                         _targetIp = (rawIp == "0.0.0.0") ? "127.0.0.1" : rawIp;
                     }
 
-                    Logger.Debug($"[gray]Найден конфиг:[/] {Path.GetFileName(path)} -> [blue]{_targetIp}:{_targetPort}[/]");
+                    Logger.Debug($"[gray]Configuration found:[/] {Path.GetFileName(path)} -> [blue]{_targetIp}:{_targetPort}[/]");
                     return;
                 }
                 catch {}
             }
         }
 
-        Logger.Debug($"[gray]Конфиги не найдены, использую стандарт:[/]{_targetIp}:{_targetPort}");
+        Logger.Debug($"[gray]Configs not found, using default:[/]{_targetIp}:{_targetPort}");
     }
 
     private async Task<bool> IsPortOpen(string host, int port)
@@ -89,14 +89,14 @@ public class GameLauncher
         // Start Server
         if (!File.Exists(_config.SptServerPath))
         {
-            Logger.Error($"[white on red]×[/] Не найден файл сервера: {_config.SptServerPath}");
+            Logger.Error($"[white on red]×[/] Server file not found: {_config.SptServerPath}");
             return false;
         }
 
         DetectServerConfig();
 
-        AnsiConsole.Write(new Rule("[yellow]Запуск игры[/]"));
-        Logger.Info("[gray]Запускаю SPT Server...[/]");
+        AnsiConsole.Write(new Rule("[yellow]Starting the game[/]"));
+        Logger.Info("[gray]Starting SPT Server...[/]");
 
         var serverInfo = new ProcessStartInfo
         {
@@ -110,7 +110,7 @@ public class GameLauncher
 
         if (serverProcess == null)
         {
-            Logger.Error("[white on red]×[/] Не удалось запустить процесс сервера!");
+            Logger.Error("[white on red]×[/] Failed to start the server process!");
             return false;
         }
 
@@ -126,7 +126,7 @@ public class GameLauncher
         // Wait Server
         await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots)
-            .StartAsync($"Ожидаем поднятия сервера...", async ctx =>
+            .StartAsync($"Waiting for the server to start up...", async ctx =>
             {
                 for (int i = 0; i < 60; i++) 
                 {
@@ -138,7 +138,7 @@ public class GameLauncher
                         return;
                     }
 
-                    ctx.Status($"Загрузка сервера... {i}с");
+                    ctx.Status($"Loading server... {i}s");
                     await Task.Delay(1000);
                 }
             });
@@ -146,23 +146,23 @@ public class GameLauncher
 
         if (serverProcess.HasExited)
         {
-            Logger.Error("[white on red]×[/] Сервер закрылся неожиданно!");
+            Logger.Error("[white on red]×[/] The server shut down unexpectedly!");
             return false;
         }
 
         if (!serverReady)
         {
-            Logger.Info("[yellow]![/] Таймаут ожидания порта. Пробуем запустить лаунчер...[/]");
+            Logger.Info("[yellow]![/] Server wait timeout.[/]");
         }
         else
         {
-            Logger.Info($"[green]√[/] Сервер успешно загрузился [green]{_targetIp}:{_targetPort}[/]");
+            Logger.Info($"[green]√[/] The server has successfully booted up [green]{_targetIp}:{_targetPort}[/]");
         }
 
         // Launcher Start
         if (File.Exists(_config.SptLauncherPath))
         {
-            Logger.Info("[gray]Открываю Лаунчер...[/]");
+            Logger.Info("[gray]Opening Launcher...[/]");
             Process.Start(new ProcessStartInfo
             {
                 FileName = _config.SptLauncherPath,
@@ -172,12 +172,12 @@ public class GameLauncher
         }
         else
         {
-            Logger.Error("[white on red]×[/] Лаунчер не был найден!");
+            Logger.Error("[white on red]×[/] Launcher not found!");
         }
 
         AnsiConsole.WriteLine();
 
-        string textPanel = "Нажмите [bold red]ENTER[/] в этом окне,\nчтобы закрыть сервер и синхронизировать профиль.";
+        string textPanel = "Press [bold red]ENTER[/] in this window to close the server and synchronize the profile.";
         var panel = new Panel(textPanel);
         panel.Border = BoxBorder.Rounded;
         panel.Header = new PanelHeader("Игра запущена");
@@ -186,14 +186,14 @@ public class GameLauncher
         
         Console.ReadLine();
 
-        Logger.Info("[gray]Закрываю сервер...[/]");
+        Logger.Info("[gray]I'm shutting down the server...[/]");
         try
         {
             if (!serverProcess.HasExited)
             {
                 serverProcess.Kill();
                 serverProcess.WaitForExit(); 
-                Logger.Info("[green]√[/] Сервер остановлен.");
+                Logger.Info("[green]√[/] The server has been shut down.");
             }
         }
         catch {}
