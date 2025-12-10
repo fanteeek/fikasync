@@ -54,7 +54,7 @@ public class Updater
         }
         catch (Exception ex)
         {
-            Logger.Error($"[white on red]×[/] Unable to check for updates: {ex.Message}");
+            Logger.Error($"Unable to check for updates: {ex.Message}");
         }
     }
 }

@@ -89,7 +89,7 @@ public class GameLauncher
         // Start Server
         if (!File.Exists(_config.SptServerPath))
         {
-            Logger.Error($"[white on red]×[/] Server file not found: {_config.SptServerPath}");
+            Logger.Error($"Server file not found: {_config.SptServerPath}");
             return false;
         }
 
@@ -110,7 +110,7 @@ public class GameLauncher
 
         if (serverProcess == null)
         {
-            Logger.Error("[white on red]×[/] Failed to start the server process!");
+            Logger.Error("Failed to start the server process!");
             return false;
         }
 
@@ -146,7 +146,7 @@ public class GameLauncher
 
         if (serverProcess.HasExited)
         {
-            Logger.Error("[white on red]×[/] The server shut down unexpectedly!");
+            Logger.Error("The server shut down unexpectedly!");
             return false;
         }
 
@@ -172,7 +172,7 @@ public class GameLauncher
         }
         else
         {
-            Logger.Error("[white on red]×[/] Launcher not found!");
+            Logger.Error("Launcher not found!");
         }
 
         AnsiConsole.WriteLine();
@@ -180,7 +180,7 @@ public class GameLauncher
         string textPanel = "Press [bold red]ENTER[/] in this window to close the server and synchronize the profile.";
         var panel = new Panel(textPanel);
         panel.Border = BoxBorder.Rounded;
-        panel.Header = new PanelHeader("Игра запущена");
+        panel.Header = new PanelHeader("The game has started");
         AnsiConsole.Write(panel);
         Logger.Debug(textPanel);
         
