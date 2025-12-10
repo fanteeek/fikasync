@@ -33,13 +33,13 @@ public class GitHubClient
             }
             else
             {
-                Logger.Error($"[white on red]×[/] GitHub error: {response.StatusCode}");
+                Logger.Error($"GitHub error: {response.StatusCode}");
                 return false;
             }
         }
         catch (Exception ex)
         {
-            Logger.Error($"[white on red]×[/] Network error: {ex.Message}");
+            Logger.Error($"Network error: {ex.Message}");
             return false;
         }
     }
@@ -68,7 +68,7 @@ public class GitHubClient
 
             if (!response.IsSuccessStatusCode)
             {
-                Logger.Error($"[white on red]×[/] Download error: {response.StatusCode}");
+                Logger.Error($"Download error: {response.StatusCode}");
                 return false;
             }
 
@@ -87,7 +87,7 @@ public class GitHubClient
         }
         catch (Exception ex)
         {
-            Logger.Error($"[white on red]×[/] Critical download error: {ex.Message}");
+            Logger.Error($"Critical download error: {ex.Message}");
             return false;
         }
     }
@@ -125,13 +125,13 @@ public class GitHubClient
             }
             else
             {
-                Logger.Error($"[white on red]×[/] Sending error {filePath}: {response.StatusCode}");
+                Logger.Error($"Sending error {filePath}: {response.StatusCode}");
                 return false;
             }
         }
         catch (Exception ex)
         {
-            Logger.Error($"[white on red]×[/] Critical sending error: {ex.Message}");
+            Logger.Error($"Critical sending error: {ex.Message}");
             return false;
         }
     }
@@ -153,6 +153,38 @@ public class GitHubClient
         }
         catch
         {
+            return null;
+        }
+    }
+
+    public async Task<byte[]?> DownloadFileContent(string owner, string repo, string filePath)
+    {
+        try
+        {
+            string url = $"/repos/{owner}/{repo}/contents/{filePath}";
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Accept.Clear();
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3.raw"));
+
+            var response = await _client.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadAsByteArrayAsync();
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+            else
+            {
+                Logger.Error($"Error downloading content for verification {filePath}: {response.StatusCode}");
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Critical verification download error: {ex.Message}");
             return null;
         }
     }

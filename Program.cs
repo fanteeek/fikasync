@@ -23,17 +23,16 @@ class Program
         Logger.Debug($"Working folder: [blue]{config.BaseDir}[/]");
         Logger.Debug($"Path to profiles: [blue]{config.GameProfilesPath}[/]");
         Logger.Debug($"GitHub Token: [blue]{(string.IsNullOrEmpty(config.GithubToken) ? "[red]Not found[/]" : $"[blue]{config.GithubToken}[/]")}[/]");
-        Logger.Debug($"GitHub URL: [blue]{(string.IsNullOrEmpty(config.RepoUrl) ? "[red]Not found[/]" : $"[blue]{config.GithubToken}[/]")}[/]");
+        Logger.Debug($"GitHub URL: [blue]{(string.IsNullOrEmpty(config.RepoUrl) ? "[red]Not found[/]" : $"[blue]{config.RepoUrl}[/]")}[/]");
 
         config.EnsureConfiguration();
 
         if (!config.IsValid())
         {
-            Logger.Error("[white on red]×[/] Setup not complete. Exit.");
+            Logger.Error("Setup not complete. Exit.");
             Console.ReadLine();
             return;
         }
-
 
         // GitHub ///////////////////////////////////////////////////////////////
         Logger.Info("[gray]Connecting to GitHub...[/]");
@@ -45,7 +44,8 @@ class Program
 
         bool isAuthSuccess = await github.TestToken();
         bool shouldLaunch = false;
-
+        List<string> pendingUploads = new List<string>();
+        
         if (isAuthSuccess)
         {
             try
@@ -80,15 +80,16 @@ class Program
                     Logger.Info($"[bold]Profiles found in the cloud:[/] {foundProfiles.Count}");
 
                     var syncer = new ProfileSync(config);
-                    syncer.SyncProfiles(extractedContentDir, foundProfiles);
 
+                    pendingUploads = syncer.SyncProfiles(extractedContentDir, foundProfiles);
+                    
                     FileManager.ForceDeleteDirectory(Path.Combine(config.BaseDir, "temp"));
                 } else Logger.Info("[yellow]![/] No profiles found in the repository.");
                 shouldLaunch = true;
             }
             catch (Exception ex)
             {
-                Logger.Error($"[white on red]×[/] Synchronization error: {ex.Message}");
+                Logger.Error($"Synchronization error: {ex.Message}");
                 shouldLaunch = AnsiConsole.Confirm("Start the game without synchronization?", defaultValue: true);
             }
         }
@@ -115,11 +116,11 @@ class Program
                 try 
                  {
                      var (owner, repo) = github.ExtractRepoInfo(config.RepoUrl);
-                     await syncer.UploadChanges(owner, repo, initialSnapshot, github);
+                     await syncer.UploadChanges(owner, repo, initialSnapshot, github, pendingUploads);
                  }
                  catch (Exception ex)
                  {
-                    Logger.Error($"[white on red]×[/] Error sending: {ex}");
+                    Logger.Error($"Error sending: {ex}");
                  }
             }
         }
