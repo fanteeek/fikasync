@@ -34,12 +34,8 @@ public class Updater
             {
                 if (latestVersion > currentVersion)
                 {
-                    var panel = new Panel(
-                        $"[yellow]New version available:[/] [green]v{latestVersion}[/]\n" +
-                        $"Your version: [gray]v{currentVersion}[/]\n\n" +
-                        $"Download: [blue underline]{htmlUrl}[/]"
-                    );
-                    panel.Header = new PanelHeader("[bold red]UPDATE AVAILABLE[/]");
+                    var panel = new Panel(Loc.Tr("Update_Body", latestVersion, currentVersion, htmlUrl));
+                    panel.Header = new PanelHeader(Loc.Tr("Update_Available"));
                     panel.Border = BoxBorder.Double;
                     panel.Padding = new Padding(2, 1, 2, 1);
                     AnsiConsole.WriteLine();
@@ -48,13 +44,13 @@ public class Updater
                 }
                 else
                 {
-                    Logger.Info($"[gray]The program version is up to date. (v{currentVersion})[/]");
+                    Logger.Info(Loc.Tr("Update_Latest", currentVersion));
                 }
             }
         }
         catch (Exception ex)
         {
-            Logger.Error($"Unable to check for updates: {ex.Message}");
+            Logger.Error(Loc.Tr("Result_Error", ex.Message));
         }
     }
 }

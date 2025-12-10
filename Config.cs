@@ -52,15 +52,15 @@ public class Config
         // check token
         if (string.IsNullOrWhiteSpace(GithubToken))
         {
-            Logger.Info("[yellow]![/] GitHub Token not found.");
+            Logger.Info(Loc.Tr("Token_NotFound"));
 
             GithubToken = AnsiConsole.Prompt(
-                new TextPrompt<string>("Enter your [green]GitHub PAT[/]:")
+                new TextPrompt<string>(Loc.Tr("Token_Prompt"))
                     .Secret()
                     .Validate(token => 
                         token.Length > 10 
                             ? ValidationResult.Success() 
-                            : ValidationResult.Error("[white on red]×[/] The token is too short.!")));
+                            : ValidationResult.Error(Loc.Tr("Token_Invalid"))));
             
             UpdateEnvFile("GITHUB_PAT", GithubToken);
             configChanged = true;
@@ -69,14 +69,14 @@ public class Config
         // check Url
         if (string.IsNullOrWhiteSpace(RepoUrl))
         {
-            Logger.Info("[yellow]![/] Repository URL not found.");
+            Logger.Info(Loc.Tr("Url_NotFound"));
             
             RepoUrl = AnsiConsole.Prompt(
-                new TextPrompt<string>("Enter [green]HTTPS URL[/] repositories:")
+                new TextPrompt<string>(Loc.Tr("Url_Prompt"))
                     .Validate(url => 
                         url.StartsWith("https://github.com/") 
                             ? ValidationResult.Success() 
-                            : ValidationResult.Error("[white on red]×[/] The link must begin with https://github.com/")));
+                            : ValidationResult.Error(Loc.Tr("Url_Invalid"))));
 
             UpdateEnvFile("REPO_URL", RepoUrl);
             configChanged = true;
@@ -84,7 +84,7 @@ public class Config
 
         if (configChanged)
         {
-            Logger.Info("[green]√[/] Settings are saved in the .env file.");
+            Logger.Info(Loc.Tr("Config_Saved"));
             AnsiConsole.WriteLine();
         }
     }
@@ -114,7 +114,7 @@ public class Config
         }
         catch (Exception ex)
         {
-            Logger.Error($"[white on red]×[/] Error writing .env: {ex.Message}");
+            Logger.Error(Loc.Tr("Env_Error", ex));
         }
     }
 

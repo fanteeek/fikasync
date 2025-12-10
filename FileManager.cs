@@ -15,7 +15,7 @@ public static class FileManager
         }
         catch (Exception ex)
         {
-            Logger.Error($"Unable to delete folder {path}: {ex.Message}");
+            Logger.Error(Loc.Tr("Result_Error", ex.Message));
         }
     }
 
@@ -32,7 +32,7 @@ public static class FileManager
         }
         catch (Exception ex)
         {
-            Logger.Error($"Unpacking error: {ex.Message}");
+            Logger.Error(Loc.Tr("Result_Error", ex.Message));
             return null;
         }
     }

@@ -53,15 +53,15 @@ public class GameLauncher
                         string rawIp = ipMatch.Groups[1].Value;
                         _targetIp = (rawIp == "0.0.0.0") ? "127.0.0.1" : rawIp;
                     }
-
-                    Logger.Debug($"[gray]Configuration found:[/] {Path.GetFileName(path)} -> [blue]{_targetIp}:{_targetPort}[/]");
+                    
+                    Logger.Debug(Loc.Tr("Config_Found", Path.GetFileName(path), _targetIp, _targetPort));
                     return;
                 }
                 catch {}
             }
         }
 
-        Logger.Debug($"[gray]Configs not found, using default:[/]{_targetIp}:{_targetPort}");
+        Logger.Debug(Loc.Tr("Config_Default", _targetIp, _targetPort));
     }
 
     private async Task<bool> IsPortOpen(string host, int port)
@@ -89,14 +89,14 @@ public class GameLauncher
         // Start Server
         if (!File.Exists(_config.SptServerPath))
         {
-            Logger.Error($"Server file not found: {_config.SptServerPath}");
+            Logger.Error(Loc.Tr("Server_NotFound", _config.SptServerPath));
             return false;
         }
 
         DetectServerConfig();
 
-        AnsiConsole.Write(new Rule("[yellow]Starting the game[/]"));
-        Logger.Info("[gray]Starting SPT Server...[/]");
+        AnsiConsole.Write(new Rule(Loc.Tr("Game_Starting")));
+        Logger.Info(Loc.Tr("Server_Starting"));
 
         var serverInfo = new ProcessStartInfo
         {
@@ -110,7 +110,7 @@ public class GameLauncher
 
         if (serverProcess == null)
         {
-            Logger.Error("Failed to start the server process!");
+            Logger.Error(Loc.Tr("Server_Process_Fail"));
             return false;
         }
 
@@ -126,7 +126,7 @@ public class GameLauncher
         // Wait Server
         await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots)
-            .StartAsync($"Waiting for the server to start up...", async ctx =>
+            .StartAsync(Loc.Tr("Server_Waiting"), async ctx =>
             {
                 for (int i = 0; i < 60; i++) 
                 {
@@ -138,7 +138,7 @@ public class GameLauncher
                         return;
                     }
 
-                    ctx.Status($"Loading server... {i}s");
+                    ctx.Status(Loc.Tr("Server_Loading", i));
                     await Task.Delay(1000);
                 }
             });
@@ -146,23 +146,23 @@ public class GameLauncher
 
         if (serverProcess.HasExited)
         {
-            Logger.Error("The server shut down unexpectedly!");
+            Logger.Error(Loc.Tr("Server_Exited"));
             return false;
         }
 
         if (!serverReady)
         {
-            Logger.Info("[yellow]![/] Server wait timeout.[/]");
+            Logger.Info(Loc.Tr("Server_Timeout"));
         }
         else
         {
-            Logger.Info($"[green]√[/] The server has successfully booted up [green]{_targetIp}:{_targetPort}[/]");
+            Logger.Info(Loc.Tr("Server_Success", _targetIp, _targetPort));
         }
 
         // Launcher Start
         if (File.Exists(_config.SptLauncherPath))
         {
-            Logger.Info("[gray]Opening Launcher...[/]");
+            Logger.Info(Loc.Tr("Launcher_Opening"));
             Process.Start(new ProcessStartInfo
             {
                 FileName = _config.SptLauncherPath,
@@ -172,28 +172,28 @@ public class GameLauncher
         }
         else
         {
-            Logger.Error("Launcher not found!");
+            Logger.Error(Loc.Tr("Launcher_NotFound"));
         }
 
         AnsiConsole.WriteLine();
 
-        string textPanel = "Press [bold red]ENTER[/] in this window to close the server and synchronize the profile.";
+        string textPanel = Loc.Tr("Game_Close_Instruction");
         var panel = new Panel(textPanel);
         panel.Border = BoxBorder.Rounded;
-        panel.Header = new PanelHeader("The game has started");
+        panel.Header = new PanelHeader(Loc.Tr("Game_Started_Title"));
         AnsiConsole.Write(panel);
         Logger.Debug(textPanel);
         
         Console.ReadLine();
 
-        Logger.Info("[gray]I'm shutting down the server...[/]");
+        Logger.Info(Loc.Tr("Server_Stopping"));
         try
         {
             if (!serverProcess.HasExited)
             {
                 serverProcess.Kill();
                 serverProcess.WaitForExit(); 
-                Logger.Info("[green]√[/] The server has been shut down.");
+                Logger.Info(Loc.Tr("Server_Stopped"));
             }
         }
         catch {}
