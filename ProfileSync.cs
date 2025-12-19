@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -14,28 +15,75 @@ public class ProfileSync
     
     private Dictionary<string, long> _sessionStartTimestamps = new();
 
+    private readonly HashSet<string> _ignoredPatterns = new(StringComparer.OrdinalIgnoreCase);
+
     public ProfileSync(Config config, GitHubClient client)
     {
         _config = config;
         _client = client;
+        LoadIgnoreList();
+    }
+
+    private void LoadIgnoreList()
+    {
+        string ignorePath = Path.Combine(_config.BaseDir, ".fikaignore");
+
+        if (!File.Exists(ignorePath))
+        {
+            try
+            {
+                File.WriteAllText(ignorePath,
+                    "# FikaSync Ignore List\n" +
+                    "# Write the file names you want to ignore here (one per line).\n" +
+                    "# Lines starting with # are comments.\n" +
+                    "# Example:\n" +
+                    "# Tested_Profile.json\n");
+            } catch {}
+        }
+
+        if (File.Exists(ignorePath))
+        {
+            try
+            {
+                var lines = File.ReadAllLines(ignorePath);
+                foreach (var line in lines)
+                {
+                    var clean = line.Trim();
+                    if (!string.IsNullOrEmpty(clean) && !clean.StartsWith("#"))
+                    {
+                        _ignoredPatterns.Add(clean);
+                    }
+                }
+                if (_ignoredPatterns.Count > 0)
+                    Logger.Debug(Loc.Tr("Ignore_Loaded", _ignoredPatterns.Count));
+            }
+            catch {}
+        }
     }
 
     public async Task PerformStartupSync(string owner, string repo)
     {
         string tempZip = Path.Combine(_config.BaseDir, "temp", "repo.zip");
         string extractPath = Path.Combine(_config.BaseDir, "temp", "extracted");
+        string downloadUrl = $"/repos/{owner}/{repo}/zipball";
 
         try
         {
-            Logger.Debug(Loc.Tr("Sync_Downloading"));
-            bool downloaded = await AnsiConsole.Status().StartAsync(Loc.Tr("Sync_Downloading"), async ctx => 
-                await _client.DownloadRepository(owner, repo, tempZip));
+            bool downloaded = false;
+
+            await AnsiConsole.Status()
+                .StartAsync(Loc.Tr("Sync_Downloading"), async ctx =>
+                {
+                    downloaded = await _client.DownloadRepository(owner, repo, tempZip);
+                });
 
             if (!downloaded) throw new Exception(Loc.Tr("Result_Error"));
 
             string? contentDir = FileManager.ExtractZip(tempZip, extractPath);
 
             var remoteFiles = contentDir != null ? FileManager.FindProfiles(contentDir) : new List<string>();
+
+            remoteFiles.RemoveAll(f => _ignoredPatterns.Contains(Path.GetFileName(f)));
 
             if (remoteFiles.Count == 0)
                 Logger.Info(Loc.Tr("Sync_NoProfiles"));
@@ -56,9 +104,15 @@ public class ProfileSync
         if (!Directory.Exists(_config.GameProfilesPath)) return;
 
         foreach (var file in Directory.GetFiles(_config.GameProfilesPath, "*.json"))
-        {
+        {   
+            string fileName = Path.GetFileName(file);
+            if (_ignoredPatterns.Contains(Path.GetFileName(fileName)))
+            {
+                Logger.Debug(Loc.Tr("Ignore_File", fileName));
+                continue;
+            }
             string content = File.ReadAllText(file);
-            _sessionStartTimestamps[Path.GetFileName(file)] = GetTimestamp(content);
+            _sessionStartTimestamps[fileName] = GetTimestamp(content);
         }
     }
 
@@ -82,6 +136,13 @@ public class ProfileSync
         foreach (var file in localFiles)
         {
             string fileName = Path.GetFileName(file);
+
+            if (_ignoredPatterns.Contains(fileName))
+            {
+                Logger.Debug(Loc.Tr("Ignore_File", fileName));
+                continue;
+            }
+
             string content = File.ReadAllText(file);
             long currentTs = GetTimestamp(content);
 
@@ -146,23 +207,29 @@ public class ProfileSync
             processedFiles.Add(fileName);
             string localPath = Path.Combine(_config.GameProfilesPath, fileName);
 
+            string remoteHash = GetFileHash(remotePath);
+            string localHash = File.Exists(localPath) ? GetFileHash(localPath) : "";
+
             string remoteContent = File.ReadAllText(remotePath);
             long remoteTs = GetTimestamp(remoteContent);
 
             long localTs = 0;
-            string localHash = "";
             if (File.Exists(localPath))
             {
                 string localContent = File.ReadAllText(localPath);
                 localTs = GetTimestamp(localContent);
-                localHash = GetFileHash(localPath);
             }
             
-            string remoteHash = GetFileHash(remotePath);
+            Logger.Debug($"Локальный хеш: {localHash}");
+            Logger.Debug($"Удаленный хеш: {remoteHash}");
+            Logger.Debug($"Локальное время: {localTs}");
+            Logger.Debug($"Удаленное время: {remoteTs}");
+            Logger.Debug($"localTs > remoteTs: {localTs > remoteTs}");
 
-            if (localHash == remoteHash)
+            if (localHash == remoteHash || localTs == remoteTs)
             {
                 table.AddRow(fileName, Loc.Tr("Status_Synced"), Loc.Tr("Action_Pass"));
+                Logger.Debug($"File: {fileName}  |  Status:  {Loc.Tr("Status_Synced")}  |  Action: {Loc.Tr("Action_Pass")}");
                 continue;
             }
 
@@ -170,11 +237,13 @@ public class ProfileSync
             {
                 _pendingUploads.Add(fileName);
                 table.AddRow(fileName, Loc.Tr("Status_LocalNewer"), Loc.Tr("Action_WillUpload"));
+                Logger.Debug($"File: {fileName}  |  Status:  {Loc.Tr("Status_LocalNewer")}  |  Action: {Loc.Tr("Action_WillUpload")}");
             }
             else
             {
                 ApplyUpdate(remotePath, localPath);
                 table.AddRow(fileName, Loc.Tr("Status_Update"), Loc.Tr("Action_Downloaded"));
+                Logger.Debug($"File: {fileName}  |  Status:  {Loc.Tr("Status_Update")}  |  Action: {Loc.Tr("Action_Downloaded")}");
                 updated++;
             }
         }
@@ -183,14 +252,23 @@ public class ProfileSync
         foreach(var file in localFiles)
         {
             string name = Path.GetFileName(file);
+
+            if (_ignoredPatterns.Contains(name))
+            {
+                Logger.Debug(Loc.Tr("Ignore_File", name));
+                continue;
+            }
+
             if (!processedFiles.Contains(name))
             {
                 _pendingUploads.Add(name);
                 table.AddRow(name, Loc.Tr("Status_NewLocal"), Loc.Tr("Action_WillUpload"));
+                Logger.Debug($"File: {name}  |  Status:  {Loc.Tr("Status_NewLocal")}  |  Action: {Loc.Tr("Action_WillUpload")}");
             }
         }
-
+        AnsiConsole.WriteLine();
         AnsiConsole.Write(table);
+        AnsiConsole.WriteLine();
         if (updated > 0) Logger.Info(Loc.Tr("Sync_Updated_Count", updated));
     }
 
@@ -247,20 +325,69 @@ public class ProfileSync
     private string GetFileHash(string filePath)
     {
         if (!File.Exists(filePath)) return string.Empty;
-        using var sha = SHA256.Create();
-        using var stream = File.OpenRead(filePath);
-        return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
+        try
+        {
+            string content = File.ReadAllText(filePath);
+            string normalized = content.Replace("\r\n", "\n").Replace("\r", "\n");
+            using var sha = SHA256.Create();
+            byte[] bytes = Encoding.UTF8.GetBytes(normalized);
+            return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+        }
+        catch
+        {
+            return string.Empty;
+        }
     }
 
     private void CreateBackup(string filePath)
     {
         try
         {
+            string fileName = Path.GetFileName(filePath);
             string ts = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-            string dir = Path.Combine(_config.BaseDir, "backups", ts);
-            Directory.CreateDirectory(dir);
-            File.Copy(filePath, Path.Combine(dir, Path.GetFileName(filePath)));
+            string backupRoot = Path.Combine(_config.BaseDir, "backups", fileName);
+            string backupTS = Path.Combine(backupRoot, ts);
+            Directory.CreateDirectory(backupTS);
+            File.Copy(filePath, Path.Combine(backupTS, fileName));
+            Logger.Info(Loc.Tr("Sync_Backup", fileName));
+            CleanOldBackups(backupRoot);
         }
-        catch { }
+        catch
+        {
+            Logger.Error(Loc.Tr("Sync_Backup_Failed"));
+        }
+    }
+
+    private void CleanOldBackups(string backupRoot)
+    {
+        if (!Directory.Exists(backupRoot)) return;
+
+        var backupDirs = Directory.GetDirectories(backupRoot)
+            .Select(dir => new DirectoryInfo(dir))
+            .Where(dir => DateTime.TryParseExact(
+                dir.Name,
+                "yyyy-MM-dd_HH-mm-ss",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out _))
+            .OrderByDescending(dir => dir.Name)
+            .ToList();
+
+        if (backupDirs.Count > 5)
+        {
+            var oldBackups = backupDirs.Skip(5);
+            foreach (var oldDir in oldBackups)
+            {
+                try
+                {
+                    Directory.Delete(oldDir.FullName, recursive: true);
+                    Logger.Debug(Loc.Tr("Sync_Backup_DeletedOld", oldDir.Name));
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(Loc.Tr("Sync_Backup_Failed_DeletedOld",oldDir.Name, ex.Message));
+                }
+            }
+        }
     }
 }
