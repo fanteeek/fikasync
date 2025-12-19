@@ -6,7 +6,7 @@
     <RootNamespace>FikaSync</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>0.3</Version>
+    <Version>0.3.1</Version>
     <Authors>fanteeek</Authors>
     <Product>FikaSync</Product>
     <AssemblyName>FikaSync</AssemblyName>
