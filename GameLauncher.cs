@@ -3,6 +3,8 @@ using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using Spectre.Console;
+using System.Text.Json.Nodes;
+using System.Text.Json;
 
 namespace FikaSync;
 
@@ -43,24 +45,33 @@ public class GameLauncher
                 {
                     string content = File.ReadAllText(path);
 
-                    var portMatch = Regex.Match(content, @"""port""\s*:\s*(\d+)");
-                    if (portMatch.Success && int.TryParse(portMatch.Groups[1].Value, out int foundPort))
-                        _targetPort = foundPort;
-
-                    var ipMatch = Regex.Match(content, @"""ip""\s*:\s\s*""([^""]+)""");
-                    if (ipMatch.Success)
+                    var node = JsonNode.Parse(content, new JsonNodeOptions
                     {
-                        string rawIp = ipMatch.Groups[1].Value;
-                        _targetIp = (rawIp == "0.0.0.0") ? "127.0.0.1" : rawIp;
-                    }
-                    
+                        PropertyNameCaseInsensitive = true
+                    }, new JsonDocumentOptions
+                    {
+                        CommentHandling = JsonCommentHandling.Skip,
+                        AllowTrailingCommas = true
+                    });
+
+                    if (node == null) continue;
+
+                    int? port = node["port"]?.GetValue<int>();
+                    string? ip = node["ip"]?.ToString();
+
+                    if (port.HasValue) _targetPort = port.Value;
+                    if (!string.IsNullOrEmpty(ip))
+                        _targetIp = (ip == "0.0.0.0") ? "127.0.0.1" : ip;
+
                     Logger.Debug(Loc.Tr("Config_Found", Path.GetFileName(path), _targetIp, _targetPort));
                     return;
                 }
-                catch {}
+                catch (Exception ex)
+                {
+                    Logger.Debug($"Failed to parse config {path}: {ex.Message}");
+                }
             }
         }
-
         Logger.Debug(Loc.Tr("Config_Default", _targetIp, _targetPort));
     }
 
@@ -159,21 +170,18 @@ public class GameLauncher
             Logger.Info(Loc.Tr("Server_Success", _targetIp, _targetPort));
         }
 
+        var launcherInfo = new ProcessStartInfo
+        {
+            FileName = _config.SptLauncherPath,
+            WorkingDirectory = Path.GetDirectoryName(_config.SptLauncherPath),
+            UseShellExecute = true
+        };
+
         // Launcher Start
-        if (File.Exists(_config.SptLauncherPath))
-        {
-            Logger.Info(Loc.Tr("Launcher_Opening"));
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = _config.SptLauncherPath,
-                WorkingDirectory = Path.GetDirectoryName(_config.SptLauncherPath),
-                UseShellExecute = true
-            });
-        }
-        else
-        {
+        Process? launcher = File.Exists(_config.SptLauncherPath) ? Process.Start(launcherInfo) : null;
+
+        if (launcher == null)
             Logger.Error(Loc.Tr("Launcher_NotFound"));
-        }
 
         AnsiConsole.WriteLine();
 
@@ -192,9 +200,14 @@ public class GameLauncher
             if (!serverProcess.HasExited)
             {
                 serverProcess.Kill();
-                serverProcess.WaitForExit(); 
+                serverProcess.WaitForExit();
+                serverProcess.Dispose();
+                launcher?.Kill();
+                launcher?.Dispose();
+
                 Logger.Info(Loc.Tr("Server_Stopped"));
             }
+
         }
         catch {}
 
