@@ -8,7 +8,7 @@ public class Updater
     private readonly GitHubClient _client;
     private readonly Config _config;
     
-    private const string UpdateRepo = "fanteeek/fika-profiles-sync";
+    private const string UpdateRepo = "fanteeek/fikasync";
 
     public Updater(GitHubClient client, Config config)
     {
@@ -61,6 +61,15 @@ public class Updater
 
         if (string.IsNullOrEmpty(currentExe)) return;
 
+        void CleanUp()
+        {
+            try
+            {
+                if (File.Exists(tempArchive)) File.Delete(tempArchive);
+                FileManager.ForceDeleteDirectory(tempExtractorDir);
+            } catch {}
+        }
+
         try
         {
             // download
@@ -89,6 +98,7 @@ public class Updater
             await Task.Delay(1500);
             AnsiConsole.Clear();
 
+            CleanUp();
             Process.Start(currentExe);
             Environment.Exit(0);
         }
@@ -99,10 +109,6 @@ public class Updater
             string oldExe = currentExe + ".old";
             if (File.Exists(oldExe) && !File.Exists(currentExe))
                 try {File.Move(oldExe, currentExe); } catch {}
-        } finally
-        {
-            if (File.Exists(tempArchive)) File.Delete(tempArchive);
-            FileManager.ForceDeleteDirectory(tempExtractorDir);
         }
     }
 

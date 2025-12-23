@@ -129,6 +129,7 @@ public class GitHubClient
         try
         {
             var res = await _client.GetAsync($"/repos/{repoName}/releases/latest");
+            Logger.Debug($"GetLatestReleaseInfo: {res} | StatusCode: {res.IsSuccessStatusCode}");
             if (!res.IsSuccessStatusCode) return null;
 
             var node = JsonNode.Parse(await res.Content.ReadAsStringAsync());
@@ -142,7 +143,7 @@ public class GitHubClient
                 string name = asset?["name"]?.ToString() ?? "";
                 string url = asset?["browser_download_url"]?.ToString() ?? "";
 
-                if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                if (name.EndsWith(".7z", StringComparison.OrdinalIgnoreCase))
                 {
                     return (tag, url);
                 }
